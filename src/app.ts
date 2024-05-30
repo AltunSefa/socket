@@ -1,8 +1,6 @@
-// src/app.ts
-import express, { Request, Response } from "express";
+import express from "express";
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
-import path from "path"; // path modülünü ekleyin
 import { ID, Query } from "node-appwrite";
 
 import { database } from "./db";
@@ -13,7 +11,7 @@ const PORT = 3005;
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*",
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -36,6 +34,7 @@ io.on("connection", (socket) => {
       receiverId,
       type,
       postId,
+      commentId,
       unSeen,
       active,
       senderImageUrl,
@@ -51,6 +50,9 @@ io.on("connection", (socket) => {
     if (postId) {
       queryArray.push(Query.equal("postId", postId));
     }
+    if (commentId) {
+      queryArray.push(Query.equal("commentId", commentId));
+    }
 
     const notification = await database.listDocuments(
       "66397753002754b32828",
@@ -65,6 +67,7 @@ io.on("connection", (socket) => {
         receiverId,
         type,
         postId: postId ? postId : null,
+        commentId: commentId ? commentId : null,
         unSeen,
         active,
         senderImageUrl,
@@ -89,6 +92,7 @@ io.on("connection", (socket) => {
             receiverId,
             type,
             postId: postId ? postId : null,
+            commentId: commentId ? commentId : null,
             unSeen,
             active,
             senderImageUrl,
@@ -107,6 +111,7 @@ io.on("connection", (socket) => {
           receiverId,
           type,
           postId: postId ? postId : null,
+          commentId: commentId ? commentId : null,
           unSeen,
           active,
           senderImageUrl,
@@ -115,17 +120,9 @@ io.on("connection", (socket) => {
       );
     }
   });
+
   socket.on("removeNotification", async (data) => {
-    const {
-      senderId,
-      receiverId,
-      type,
-      postId,
-      unSeen,
-      active,
-      senderImageUrl,
-      senderName,
-    } = data;
+    const { senderId, receiverId, type, postId, commentId, active } = data;
     const receiverSocketId = users.get(receiverId);
     let queryArray = [
       Query.equal("senderId", senderId),
@@ -136,12 +133,16 @@ io.on("connection", (socket) => {
     if (postId) {
       queryArray.push(Query.equal("postId", postId));
     }
+    if (commentId) {
+      queryArray.push(Query.equal("commentId", commentId));
+    }
 
     const notification = await database.listDocuments(
       "66397753002754b32828",
       "663bd80a00250402979e",
       queryArray
     );
+
     console.log("removeNotification", notification);
     if (receiverSocketId) {
       console.log(type);
@@ -150,29 +151,31 @@ io.on("connection", (socket) => {
         receiverId,
         type,
         postId,
-        unSeen,
+        commentId,
         active,
-        senderImageUrl,
-        senderName,
       });
-      await database.updateDocument(
-        "66397753002754b32828",
-        "663bd80a00250402979e",
-        notification.documents[0].$id,
-        {
-          active: false,
-        }
-      );
+      if (notification.documents.length > 0) {
+        await database.updateDocument(
+          "66397753002754b32828",
+          "663bd80a00250402979e",
+          notification.documents[0].$id,
+          {
+            active: false,
+          }
+        );
+      }
     } else {
       console.log(type);
-      await database.updateDocument(
-        "66397753002754b32828",
-        "663bd80a00250402979e",
-        notification.documents[0].$id,
-        {
-          active: false,
-        }
-      );
+      if (notification.documents.length > 0) {
+        await database.updateDocument(
+          "66397753002754b32828",
+          "663bd80a00250402979e",
+          notification.documents[0].$id,
+          {
+            active: false,
+          }
+        );
+      }
     }
   });
   // send message
