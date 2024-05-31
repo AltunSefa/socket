@@ -180,7 +180,24 @@ io.on("connection", (socket) => {
   });
   // send message
   socket.on("sendMessage", async (message) => {
-    const { senderId, receiverId, text, unSeen, active } = message;
+    const { senderId, receiverId, text, unSeen, active, conversationId } =
+      message;
+
+    const getConversation = await database.listDocuments(
+      "66397753002754b32828",
+      "6658b0d90035989e7b16",
+      [Query.equal("participants", conversationId)]
+    );
+
+    const updateConversation = await database.updateDocument(
+      "66397753002754b32828",
+      "6658b0d90035989e7b16",
+      getConversation.documents[0].$id,
+      {
+        lastMessage: text,
+        lastMessageId: senderId,
+      }
+    );
 
     const receiverSocketId = users.get(receiverId);
     if (receiverSocketId) {
@@ -190,6 +207,7 @@ io.on("connection", (socket) => {
         .emit("receiveMessage", { senderId, receiverId, text, unSeen, active });
       socket.emit("receiveMessage", {
         senderId,
+        conversationId,
         receiverId,
         text,
         unSeen: true,
@@ -201,6 +219,7 @@ io.on("connection", (socket) => {
         ID.unique(),
         {
           senderId,
+          conversationId,
           receiverId,
           text,
           unSeen: true,
@@ -210,6 +229,7 @@ io.on("connection", (socket) => {
     } else {
       socket.emit("receiveMessage", {
         senderId,
+        conversationId,
         receiverId,
         text,
         unSeen: false,
@@ -221,6 +241,7 @@ io.on("connection", (socket) => {
         ID.unique(),
         {
           senderId,
+          conversationId,
           receiverId,
           text,
           unSeen: false,
