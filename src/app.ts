@@ -180,31 +180,47 @@ io.on("connection", (socket) => {
   });
   // send message
   socket.on("sendMessage", async (message) => {
-    const { senderId, receiverId, text, unSeen, active, conversationId } =
-      message;
+    const {
+      senderId,
+      receiverId,
+      text,
+      unSeen,
+      active,
+      conversationId,
+      control,
+    } = message;
 
-    const getConversation = await database.listDocuments(
-      "66397753002754b32828",
-      "6658b0d90035989e7b16",
-      [Query.equal("participants", conversationId)]
-    );
+    console.log("asd", conversationId, control);
 
-    const updateConversation = await database.updateDocument(
-      "66397753002754b32828",
-      "6658b0d90035989e7b16",
-      getConversation.documents[0].$id,
-      {
-        lastMessage: text,
-        lastMessageId: senderId,
-      }
-    );
+    if (control === false) {
+      const getConversation = await database.listDocuments(
+        "66397753002754b32828",
+        "6658b0d90035989e7b16",
+        [Query.equal("participants", conversationId)]
+      );
+
+      const updateConversation = await database.updateDocument(
+        "66397753002754b32828",
+        "6658b0d90035989e7b16",
+        getConversation.documents[0].$id,
+        {
+          lastMessage: text,
+          lastMessageId: senderId,
+        }
+      );
+    }
 
     const receiverSocketId = users.get(receiverId);
     if (receiverSocketId) {
       console.log(text);
-      socket
-        .to(receiverSocketId)
-        .emit("receiveMessage", { senderId, receiverId, text, unSeen, active });
+      socket.to(receiverSocketId).emit("receiveMessage", {
+        senderId,
+        conversationId,
+        receiverId,
+        text,
+        unSeen,
+        active,
+      });
       socket.emit("receiveMessage", {
         senderId,
         conversationId,
