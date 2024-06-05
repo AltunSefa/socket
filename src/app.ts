@@ -190,6 +190,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("joinRoom", async (keys) => {
+    console.log("joinRoom", keys);
     const { connectionId, userID } = keys;
 
     let room: Room | undefined;
@@ -242,6 +243,8 @@ io.on("connection", (socket) => {
       active,
       conversationId,
       control,
+      senderName,
+      profileImageUrl,
     } = message;
 
     const room = rooms.get(conversationId);
@@ -337,7 +340,7 @@ io.on("connection", (socket) => {
           [Query.equal("participants", conversationId)]
         );
 
-        const updateConversation = await database.updateDocument(
+        await database.updateDocument(
           "66397753002754b32828",
           "6658b0d90035989e7b16",
           getConversation.documents[0].$id,
@@ -359,6 +362,8 @@ io.on("connection", (socket) => {
           text,
           unSeen: false,
           active,
+          profileImageUrl,
+          senderName,
         });
         socket.emit("receiveMessage", {
           senderId,
@@ -367,6 +372,8 @@ io.on("connection", (socket) => {
           text,
           unSeen: false,
           active,
+          profileImageUrl,
+          senderName,
         });
         await database.createDocument(
           "66397753002754b32828",
@@ -388,6 +395,8 @@ io.on("connection", (socket) => {
           receiverId,
           text,
           unSeen: false,
+          profileImageUrl,
+          senderName,
           active,
         });
         await database.createDocument(
